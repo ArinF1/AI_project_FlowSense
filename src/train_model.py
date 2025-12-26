@@ -21,7 +21,7 @@ def get_dataloaders():
     # Preprocessing transformations for training and validation datasets
     train_transforms = transforms.Compose([
         transforms.Resize((IMG_SIZE, IMG_SIZE)),  # This resizes the image to 224x224 pixels
-        transforms.RandomHorizontalFlip(p=0.2), # This augments the data by flipping images horizontally with a probability of 20%
+      ##  transforms.RandomHorizontalFlip(p=0.2), # This augments the data by flipping images horizontally with a probability of 20%
         transforms.ToTensor(),  # this converts the image to a PyTorch tensor
     ])
 
