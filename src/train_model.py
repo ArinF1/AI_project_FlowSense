@@ -4,11 +4,12 @@ import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms, models
 from torch.utils.data import DataLoader
+import time
 
 #Define paths
 DATASET_DIR = Path("src/data/dataset")
 MODEL_DIR = Path("src/models")
-MODEL_DIR.mkdir(exist_ok=True)
+MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
 # The training settings 
 BATCH_SIZE = 16
@@ -22,6 +23,7 @@ def get_dataloaders():
     train_transforms = transforms.Compose([
         transforms.Resize((IMG_SIZE, IMG_SIZE)),  # This resizes the image to 224x224 pixels
       ##  transforms.RandomHorizontalFlip(p=0.2), # This augments the data by flipping images horizontally with a probability of 20%
+        transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
         transforms.ToTensor(),  # this converts the image to a PyTorch tensor
     ])
 
@@ -48,6 +50,10 @@ def get_dataloaders():
 # @param device: device to run the model on CPU or GPU
 def build_model(num_classes: int, device):
     model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)  # Load pre-trained MobileNetV2 model
+
+    for param in model.features.parameters():
+        param.requires_grad = False
+
 
     in_features = model.classifier[1].in_features           # Get the number of input features to the classifier layer
     model.classifier[1] = nn.Linear(in_features, num_classes)   # Replaces the classifier layer to match the number of classes, nn is a neural network module in PyTorch
@@ -76,6 +82,7 @@ def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Use GPU if available, else CPU
     print(f"Using device:", device) # Info for device being used
 
+
     train_dataset, train_loader, val_loader, test_loader = get_dataloaders()  # Get data loaders
     class_names = train_dataset.classes  # Get class names from the training dataset
     num_classes = len(class_names)  # Number of classes
@@ -86,10 +93,10 @@ def train():
     model = build_model(num_classes, device)  # Build the model
 
     criterion = nn.CrossEntropyLoss()  # Loss function for multi-class classification
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)  # Adam optimizer, tool from torch.optim
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE) # Adam optimizer, tool from torch.optim
 
     best_val_accuracy = 0.0  # Variable to track the best validation accuracy
-    best_path = MODEL_DIR / "mobilenetv2_best.pth"  # Path to save the best model
+    save_path = MODEL_DIR / "mobilenetv2_best.pth"  # Path to save the best model
 
     for epoch in range(NUM_EPOCHS):
         model.train()  # Sets the model to training mode
@@ -118,20 +125,20 @@ def train():
             torch.save({
                 "model_state_dict": model.state_dict(),
                 "classes": class_names
-            }, best_path)   # Save the model state and class names
+            }, save_path)   # Save the model state and class names
+            print(f"model saved to {save_path}")
 
-            # Print info about the best model saved
-            print(f"Best model saved with val_accuracy to {best_path} (val_accuracy = {best_val_accuracy:.3f})")
+    print("\nTraining complete")
 
             # Finally, test the evaluation using the best model
-            checkpoint = torch.load(best_path, map_location=device)
-            model.load_state_dict(checkpoint["model_state_dict"])  # Load the best model state
-            test_accuracy = evaluate_model(model, test_loader, device)  # Evaluate on test set
+    checkpoint = torch.load(save_path, map_location=device)
+    model.load_state_dict(checkpoint["model_state_dict"])  # Load the best model state
+    test_accuracy = evaluate_model(model, test_loader, device)  # Evaluate on test set
 
-            print("\n Final results")
-            print("Best validation accuracy:", best_val_accuracy)
-            print("Test accuracy:", test_accuracy)
-            print("Saved model:", best_path)
+    print("\n Final results")
+    print("Best validation accuracy:", best_val_accuracy)
+    print("Test accuracy:", test_accuracy)
+    print("Saved model:", save_path)
 
 if __name__ == "__main__":
     train()

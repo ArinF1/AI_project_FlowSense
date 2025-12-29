@@ -10,6 +10,12 @@ DATASET_DIR = Path("src/data/dataset")
 SPLIT = {"train": 0.7, "val": 0.2, "test": 0.1}
 SEED = 42
 
+CLASSES = [
+    "left_calm", "left_moderate", "left_strong",
+    "right_calm", "right_moderate", "right_strong",
+    "stationary", "no_object", "away"
+]
+
 # Function to determine label from folder name
 def label_from_video_folder(folder_name):
     name = folder_name.lower()  # case sensitive handling
@@ -17,7 +23,7 @@ def label_from_video_folder(folder_name):
     # left direction, with strength
     if name.startswith("leftcalm"):
         return "left_calm"
-    if name.startswith("leftmoderate"):
+    if name.startswith("leftmoderate") or name.startswith("leftmodarete"):
         return "left_moderate"
     if name.startswith("leftstrong"):
         return "left_strong"
@@ -25,7 +31,7 @@ def label_from_video_folder(folder_name):
     # right direction, with strength
     if name.startswith("rightcalm"):
         return "right_calm"
-    if name.startswith("rightmoderate"):
+    if name.startswith("rightmoderate") or name.startswith("rightmodarete"): 
         return "right_moderate"
     if name.startswith("rightstrong"):
         return "right_strong"
@@ -40,25 +46,19 @@ def label_from_video_folder(folder_name):
     
     # No object / empty
     if name.startswith("noobject"):
-        return "noObject"
+        return "no_object"
     
     return None
 
 # Ensure dataset directories exist
 def ensure_directories_exist():
-    classes = [
-        "left_calm",
-        "left_moderate",
-        "left_strong",
-        "right_calm",
-        "right_moderate",
-        "right_strong",
-        "away",
-        "stationary",
-        "noobject",        # new
-    ]
+    if DATASET_DIR.exists():
+        print(f"Cleaning old dataset at {DATASET_DIR}...")
+        shutil.rmtree(DATASET_DIR)
+
+
     for split in SPLIT.keys():    # train, val, test
-        for cls in classes: # class for labels
+        for cls in CLASSES: # class for labels
             (DATASET_DIR / split / cls).mkdir(parents=True, exist_ok=True)  # create directories if they don't exist
 
 # Randomly assign a split based on defined ratios
@@ -86,6 +86,8 @@ def main():
             continue
 
         cls = label_from_video_folder(video_folder.name) # Determine class label
+
+
         if cls is None:
             print(f"Skipping folder with unknown label: {video_folder.name}")
             skipped += 1  # Increment skip 
