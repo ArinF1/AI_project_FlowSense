@@ -14,20 +14,49 @@ SEED = 42
 def label_from_video_folder(folder_name):
     name = folder_name.lower()  # case sensitive handling
 
-    if "stationary" in name or "noobject" in name:
-        return "calm"
+    # left direction, with strength
+    if name.startswith("leftcalm"):
+        return "left_calm"
+    if name.startswith("leftmoderate"):
+        return "left_moderate"
+    if name.startswith("leftstrong"):
+        return "left_strong"
 
-    if "strong" in name:
-        return "turbulent"
+    # right direction, with strength
+    if name.startswith("rightcalm"):
+        return "right_calm"
+    if name.startswith("rightmoderate"):
+        return "right_moderate"
+    if name.startswith("rightstrong"):
+        return "right_strong"
+
+    # away wind - no strength split needed
+    if name.startswith("awaywind"):
+        return "away"
+
+    # Stationary - no wind
+    if name.startswith("stationary"):
+        return "stationary"
     
-    if "away" in name or "left" in name or "right" in name:
-        return "directional"
+    # No object / empty
+    if name.startswith("noobject"):
+        return "noObject"
     
     return None
 
 # Ensure dataset directories exist
 def ensure_directories_exist():
-    classes = ["calm", "turbulent", "directional"]
+    classes = [
+        "left_calm",
+        "left_moderate",
+        "left_strong",
+        "right_calm",
+        "right_moderate",
+        "right_strong",
+        "away",
+        "stationary",
+        "noobject",        # new
+    ]
     for split in SPLIT.keys():    # train, val, test
         for cls in classes: # class for labels
             (DATASET_DIR / split / cls).mkdir(parents=True, exist_ok=True)  # create directories if they don't exist
@@ -45,10 +74,6 @@ def split_choice():
 # Main function
 def main():
     random.seed(SEED)
-
-    if DATASET_DIR.exists():
-        shutil.rmtree(DATASET_DIR)
-
     ensure_directories_exist()
 
     # Initialize counters
@@ -82,10 +107,8 @@ def main():
             total_copied += 1
 
         # Progress update
-        print(f"\nProcessing Complete.")
-        print(f"Total frames copied: {total_copied}")
-        print(f"Folders skipped: {skipped}")
-        print(f"Dataset created at: {DATASET_DIR.resolve()}")
+        print(f"\n Done. Copied {total_copied} frames to {DATASET_DIR}")
+        print(f"Skipped {skipped} folders due to unknown labels or no frames.")
 
 if __name__ == "__main__":
     main()

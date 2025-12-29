@@ -12,7 +12,7 @@ MODEL_DIR.mkdir(exist_ok=True)
 
 # The training settings 
 BATCH_SIZE = 16
-NUM_EPOCHS = 15
+NUM_EPOCHS = 10
 LEARNING_RATE = 0.0005
 IMG_SIZE = (224)
 
@@ -21,8 +21,7 @@ def get_dataloaders():
     # Preprocessing transformations for training and validation datasets
     train_transforms = transforms.Compose([
         transforms.Resize((IMG_SIZE, IMG_SIZE)),  # This resizes the image to 224x224 pixels
-        
-        transforms.RandomHorizontalFlip(p=0.5), # This augments the data by flipping images horizontally with a probability of 20%
+      ##  transforms.RandomHorizontalFlip(p=0.2), # This augments the data by flipping images horizontally with a probability of 20%
         transforms.ToTensor(),  # this converts the image to a PyTorch tensor
     ])
 
@@ -120,27 +119,19 @@ def train():
                 "model_state_dict": model.state_dict(),
                 "classes": class_names
             }, best_path)   # Save the model state and class names
-            print(f"best model saved {val_accuracy:.3f}")
 
             # Print info about the best model saved
             print(f"Best model saved with val_accuracy to {best_path} (val_accuracy = {best_val_accuracy:.3f})")
 
-            
+            # Finally, test the evaluation using the best model
+            checkpoint = torch.load(best_path, map_location=device)
+            model.load_state_dict(checkpoint["model_state_dict"])  # Load the best model state
+            test_accuracy = evaluate_model(model, test_loader, device)  # Evaluate on test set
 
-    print("\nTraining Complete")
-    
-    # Load the model
-    checkpoint = torch.load(best_path, map_location=device)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    
-    # Run test set
-    test_accuracy = evaluate_model(model, test_loader, device)
-
-    print(f"Best Validation Accuracy: {best_val_accuracy:.3f}")
-    print(f"Final Test Accuracy: {test_accuracy:.3f}")
-    print(f"Model saved to {best_path}")
-
-        
+            print("\n Final results")
+            print("Best validation accuracy:", best_val_accuracy)
+            print("Test accuracy:", test_accuracy)
+            print("Saved model:", best_path)
 
 if __name__ == "__main__":
     train()
