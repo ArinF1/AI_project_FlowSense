@@ -1,4 +1,5 @@
 from pathlib import Path
+from pyexpat import model
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -18,30 +19,34 @@ IMG_SIZE = (224)
 
 # Function to get data loaders
 def get_dataloaders():
+
+    # ImageNet normalization is standard for pretrained MobileNetV2
+    norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
     # Preprocessing transformations for training and validation datasets
     train_transforms = transforms.Compose([
         transforms.Resize((IMG_SIZE, IMG_SIZE)),  # This resizes the image to 224x224 pixels
       ##  transforms.RandomHorizontalFlip(p=0.2), # This augments the data by flipping images horizontally with a probability of 20%
         transforms.ToTensor(),  # this converts the image to a PyTorch tensor
+        norm
     ])
 
-# Preprocessing transformations for validation and test datasets
+# Preprocessing transformations for validation datasets
     val_transforms = transforms.Compose([
         transforms.Resize((IMG_SIZE, IMG_SIZE)),
         transforms.ToTensor(),
+        norm
     ])
 
     # Loads datasets from the respective directories
     train_dataset = datasets.ImageFolder(DATASET_DIR / "train", transform=train_transforms)
     val_dataset = datasets.ImageFolder(DATASET_DIR / "val", transform=val_transforms)
-    test_dataset = datasets.ImageFolder(DATASET_DIR / "test", transform=val_transforms)
 
 # Creates data loaders for batching and shuffling
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-    return train_dataset, train_loader, val_loader, test_loader
+    return train_dataset, train_loader, val_loader
 
 # Function to build the model
 # @param num_classes: number of output classes
@@ -76,7 +81,7 @@ def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Use GPU if available, else CPU
     print(f"Using device:", device) # Info for device being used
 
-    train_dataset, train_loader, val_loader, test_loader = get_dataloaders()  # Get data loaders
+    train_dataset, train_loader, val_loader = get_dataloaders()  # Get data loaders
     class_names = train_dataset.classes  # Get class names from the training dataset
     num_classes = len(class_names)  # Number of classes
 
@@ -121,17 +126,17 @@ def train():
             }, best_path)   # Save the model state and class names
 
             # Print info about the best model saved
-            print(f"Best model saved with val_accuracy to {best_path} (val_accuracy = {best_val_accuracy:.3f})")
+    print(f"Best model saved with val_accuracy to {best_path} (val_accuracy = {best_val_accuracy:.3f})")
 
-            # Finally, test the evaluation using the best model
-            checkpoint = torch.load(best_path, map_location=device)
-            model.load_state_dict(checkpoint["model_state_dict"])  # Load the best model state
-            test_accuracy = evaluate_model(model, test_loader, device)  # Evaluate on test set
+    # Finally, validate the evaluation using the best model
+    checkpoint = torch.load(best_path, map_location=device)
+    model.load_state_dict(checkpoint["model_state_dict"])  # Load the best model state
+    final_acc = evaluate_model(model, val_loader, device)  # Evaluate on validation set
 
-            print("\n Final results")
-            print("Best validation accuracy:", best_val_accuracy)
-            print("Test accuracy:", test_accuracy)
-            print("Saved model:", best_path)
+    print("\n Final results")
+    print("Best validation accuracy:", best_val_accuracy)
+    print("Val accuracy:", final_acc)
+    print("Saved model:", best_path)
 
 if __name__ == "__main__":
     train()

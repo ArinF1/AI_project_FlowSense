@@ -24,7 +24,7 @@ def load_trained_model(path, device):
     num_classes = len(class_names)
     
     #Build the model architecture no pretrained weights
-    model = models.mobilenet_v2(pretrained=False)
+    model = models.mobilenet_v2(weights=None)
     
 
     # final layer replacement
@@ -42,10 +42,13 @@ def load_trained_model(path, device):
 
 # function to get preprocessing transforms
 def get_transforms():
+    # Standard ImageNet normalization used in training
+    norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
   
     return transforms.Compose([
         transforms.Resize((IMG_SIZE, IMG_SIZE)),
         transforms.ToTensor(),
+        norm
     ])
 
 # function to predict on a single frame
@@ -96,8 +99,14 @@ def main():
             print("Failed to grab frame")
             break
 
+        # CALCULATE CENTER CROP
+        h, w, _ = frame.shape
+        size = h
+        start_x = (w - size) // 2
+        cropped_frame = frame[:, start_x:start_x+size] # 1:1 Aspect Ratio
+
         # run prediction
-        label, confidence = predict_frame(model, frame, transform, class_names, DEVICE)
+        label, confidence = predict_frame(model, cropped_frame, transform, class_names, DEVICE)
 
         # Visualize
         # confident = green, yellow = less confident

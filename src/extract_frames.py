@@ -10,12 +10,21 @@ OUTPUT_DIR = Path("src/data/frames")
 EXTRACT_EVERY_5_FRAMES = 5
 
 
-def extract_frames_from_video(video_path, output_subfolder):
+def extract_frames_from_video(video_path, output_subfolder, frame_interval = EXTRACT_EVERY_5_FRAMES):
     #Extract frames and save to an output folder
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
-        print(f"ERROR: Could not open video: {video_path}")
+        print(f"ERROR, Could not open video: {video_path}")
         return
+    
+    # Get video properties (1920x1080)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    # Determine cropping coordinates for center square, e.g., 1080x1080 from 1920x1080
+    size = height
+    start_x = (width - size) // 2
+    end_x = start_x + size
 
     # Create output subfolder
     output_subfolder.mkdir(parents=True, exist_ok=True)
@@ -31,16 +40,20 @@ def extract_frames_from_video(video_path, output_subfolder):
             break  # End of video
 
         # Save only every 5th frame
-        if frame_idx % EXTRACT_EVERY_5_FRAMES == 0:
+        if frame_idx % frame_interval == 0:
+            # Crop to center square, cuts width sides off
+            cropped_frame = frame[0:height, start_x:end_x]
+            final_frame = cv2.resize(cropped_frame, (224, 224))   # Resize to 224x224
+            
             frame_path = output_subfolder / f"frame_{saved_idx:04d}.jpg"
-            cv2.imwrite(str(frame_path), frame)
+            cv2.imwrite(str(frame_path), final_frame)
             saved_idx += 1
 
         frame_idx += 1
 
     # Release video capture object
     cap.release()
-    print(f"Extracted {saved_idx} frames from {video_path.name} into {output_subfolder}")
+    print(f"Extracted {saved_idx} CROPPED frames from {video_path.name}")
 
 
 # Main func
@@ -65,7 +78,7 @@ def main():
         #call on the function
         extract_frames_from_video(video_file, category_folder)
 
-    print("All videos processed")
+    print("All videos processed with Center cropping and resizing.")
 
 # Run the script
 if __name__ == "__main__":
