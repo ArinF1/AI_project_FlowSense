@@ -4,6 +4,7 @@ import torch.nn as nn
 from torchvision import models, transforms
 from PIL import Image
 from pathlib import Path
+from smoothing import LabelSmoother
 
 # config
 MODEL_PATH = Path("src/models/mobilenetv2_best.pth")
@@ -90,6 +91,9 @@ def main():
 
     # Preprocessing
     transform = get_transforms()
+
+    # Initializs smoother
+    smoother = LabelSmoother(buffer_size=12)
     
     print("FlowSense detection started")
 
@@ -106,7 +110,9 @@ def main():
         cropped_frame = frame[:, start_x:start_x+size] # 1:1 Aspect Ratio
 
         # run prediction
-        label, confidence = predict_frame(model, cropped_frame, transform, class_names, DEVICE)
+        raw_label, confidence = predict_frame(model, cropped_frame, transform, class_names, DEVICE)
+
+        label = smoother.update(raw_label)
 
         # Visualize
         # confident = green, yellow = less confident

@@ -30,16 +30,12 @@ def label_from_video_folder(folder_name):
     if name.startswith("stationary"):
         return "stationary"
     
-    # No object / empty
-    if name.startswith("noobject"):
-        return "noobject"
-    
     return None
 
 # Ensure dataset directories exist
 def ensure_directories_exist():
     classes = [
-        "left_calm", "left_strong", "right_calm", "right_strong", "stationary", "noobject"
+        "left_calm", "left_strong", "right_calm", "right_strong", "stationary"
     ]
 
     for split in SPLIT.keys():    # train, val
