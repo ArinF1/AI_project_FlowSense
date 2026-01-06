@@ -66,14 +66,21 @@ def predict_frame(model, frame, transform, class_names, device):
     
     with torch.no_grad():
         outputs = model(input_tensor)
-        probabilities = torch.nn.functional.softmax(outputs, dim=1)
-        confidence, predicted_idx = torch.max(probabilities, 1)
+        probabilities = torch.nn.functional.softmax(outputs, dim=1)[0]
+
+    conf, idx = torch.max(probabilities, 0)
+    label = class_names[idx.item()]
+
         
     # label and confidence score    
-    label = class_names[predicted_idx.item()]
-    conf_score = confidence.item()
-    return label, conf_score
-
+    if label == "stationary":
+        movement_labels = ["left_calm", "right_calm", "left_strong", "right_strong"]
+        for m_label in movement_labels:
+            m_idx = class_names.index(m_label)
+            if probabilities[m_idx] > 0.20:
+                return m_label, probabilities[m_idx].item()
+            
+    return label, conf.item()
 
 def main():
     #load Model
