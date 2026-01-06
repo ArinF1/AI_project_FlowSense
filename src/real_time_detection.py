@@ -6,6 +6,9 @@ from PIL import Image
 from pathlib import Path
 from smoothing import LabelSmoother
 
+import time
+import csv
+
 # config
 MODEL_PATH = Path("src/models/mobilenetv2_best.pth")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -68,11 +71,12 @@ def predict_frame(model, frame, transform, class_names, device):
         outputs = model(input_tensor)
         probabilities = torch.nn.functional.softmax(outputs, dim=1)[0]
 
-    conf, idx = torch.max(probabilities, 0)
-    label = class_names[idx.item()]
+
+    conf, idx = torch.max(probabilities, 0) # Get highest confidence and index
+    label = class_names[idx.item()] # index to label
 
         
-    # label and confidence score    
+    # label and confidence score   
     if label == "stationary":
         movement_labels = ["left_calm", "right_calm", "left_strong", "right_strong"]
         for m_label in movement_labels:
@@ -119,7 +123,12 @@ def main():
         # run prediction
         raw_label, confidence = predict_frame(model, cropped_frame, transform, class_names, DEVICE)
 
-        label = smoother.update(raw_label)
+        label = smoother.update(raw_label) # Smoothed label
+
+        # Log data - called from dashboard.py
+        with open("src/data/wind_log.csv", "a", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([time.time(), label, confidence])
 
         # Visualize
         # confident = green, yellow = less confident
