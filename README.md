@@ -48,7 +48,7 @@ python train_model.py
 Launch the webcam inference loop:
 python real_time_detection.py
 Controls: Press q to quit the video feed.
-Feedback: The window displays the detected state (e.g., "LEFT_STRONG") and confidence score. Green bounding boxes indicate confidence > 60\%$.
+Feedback: The window displays the detected state (e.g., "LEFT_STRONG") and confidence score. Green bounding boxes indicate confidence > 60%.
 
 5. Live dashboard
 To visualize the frequency of states over the last 50 frames, run the dashboard in a separate terminal while detection is running:
